@@ -1,1 +1,4 @@
 flask
+ecdsa
+base58
+pycryptodome
