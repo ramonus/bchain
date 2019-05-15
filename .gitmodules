@@ -1,0 +1,3 @@
+[submodule "Hybrid"]
+	path = Hybrid
+	url = git@github.com:ramonus/Hybrid.git
