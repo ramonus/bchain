@@ -2,6 +2,7 @@ from Hybrid.ECDSA import ECDSA
 from base58 import b58encode
 import hashlib, json
 from pathlib import Path
+import config
 
 sha = lambda x: hashlib.sha256(x if isinstance(x,bytes) else x.encode()).digest()
 
@@ -21,18 +22,30 @@ def ripemd160(x,_hex=False):
     else:
         return ri.digest()
 
-def get_wallet(path='wallet.dat'):
+def get_wallet(path=None):
     """
     Loads a wallet or creates a new one
 
-    :param path: <str> (Optional) Path of the .dat file, default to 'wallet.dat'.
+    :param path: <str> (Optional) Path of the .dat file, default to 'wallets/wallet.dat'.
     :return: <dict> Wallet dict
     """
-    p = Path(path)
+
+    if path is None:
+        path = Path(config.wallets_dir)/config.node_wallet
+    elif isinstance(path, str):
+        if not path.endswith(".dat"):
+            path += '.dat'
+        if not '/' in path:
+            path = Path(config.wallets_dir)/path
+        else:
+            path = Path(path)
+    else:
+        path = Path(path)
+        
     error = False
-    if p.exists():
+    if path.exists():
         try:
-            w = json.loads(p.read_text())
+            w = json.loads(path.read_text())
         except:
             print("Wallet corrupted")
             error = True
@@ -103,7 +116,7 @@ def create_wallet():
 
     return wallet
 
-def save_wallet(wallet,path='wallet.dat'):
+def save_wallet(wallet,path=None):
     """
     Saves a wallet to a specified file.
 
@@ -112,10 +125,23 @@ def save_wallet(wallet,path='wallet.dat'):
     :return: <bool> True if success, otherwise False
     """
 
-    p = Path(path)
+    wp = Path(config.wallets_dir)
+    if not wp.exists():
+        wp.mkdir()
+    
+    if path is None:
+        p = wp/config.node_wallet
+        if p.exists():
+            n = 1
+            while (wp/config.wallet_namef.format(n)).exists():
+                n+=1
+            p = wp/config.wallet_namef.format(n)
+    else:
+        p = Path(path)
     
     try:
         p.write_text(json.dumps(wallet, sort_keys=True))
+        print("Wallet saved to:",p)
     except Exception as e:
         print("Error saving wallet:",str(e))
         return False
