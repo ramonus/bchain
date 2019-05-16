@@ -1,13 +1,28 @@
 <html>
     <head>
         <title>Test gui</title>
+        <style>
+            h1{
+                text-decoration: underline;
+            }
+            :not(h1){
+                margin-left: 30px;
+            }
+        </style>
     </head>
     <body style="font-size:20px">
+        <h1>Chain</h1>
         <h2><a href="/chain">Chain</a></h2>
-        <h2><a href="/transactions">Transactions</a></h2>
-        <h3><a href="/new_transaction">&nbsp;&nbsp;&nbsp;Newtransaction</a></h3>
+        <h2><a href="/chain/length">Chain length</a></h2>
+        
+        <h1>Transactions</h1>
+        <h2><a href="/transactions">Pending transactions</a></h2>
+        <h2><a href="/transactions/length">Pending transactions length</a></h2>
+        <h2><a href="/new_transaction">New transaction</a></h2>
+        <h1>State</h1>
         <h2><a href="/state">State</a></h2>
-        <h3><a href="/state/all">&nbsp;&nbsp;&nbsp;State*</a></h3>
+        <h2><a href="/state/all">State with pending transactions</a></h2>
+        <h1>Block mining</h1>
         <h2><a href="/mine">Mine a new Block</a></h2>
     </body>
 </html>

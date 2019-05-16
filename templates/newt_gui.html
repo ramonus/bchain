@@ -44,7 +44,7 @@
                 let req = {
                     wallet: JSON.parse(wallet),
                     recipient: recipient,
-                    amount: parseFloat(amount),
+                    amount: parseFloat(amount)*1.0,
                 }
                 $.ajax({
                     type: "POST",
