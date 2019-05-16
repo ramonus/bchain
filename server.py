@@ -1,6 +1,7 @@
 import hashlib, json, time, uuid
 from flask import Flask, jsonify, request, render_template
 from blockchain import Blockchain
+from wallet_utils import create_wallet, save_wallet
 
 # Instantiate our node
 app = Flask(__name__)
@@ -10,6 +11,7 @@ node_identifier = str(uuid.uuid4()).replace("-","")
 
 # Instantiate Blockchain
 blockchain = Blockchain()
+
 
 @app.route("/mine",methods=['GET'])
 def mine():
@@ -187,5 +189,17 @@ def get_wallets():
         w = {"name":pa.stem, "wallet": json.loads(pa.read_text())}
         wallets.append(w)
     return jsonify(wallets), 200
+
+@app.route("/new_wallet")
+def new_wallet():
+    w = create_wallet()
+    n = save_wallet(w)
+    resp = {
+        "name":n,
+        "wallet": w,
+    }
+
+    return jsonify(resp), 201
+
 if __name__=="__main__":
     app.run(host='0.0.0.0',port=5000)

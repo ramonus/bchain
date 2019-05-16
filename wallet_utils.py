@@ -53,7 +53,7 @@ def get_wallet(path=None):
         error = True
     if error:
         w = create_wallet()
-        save_wallet(w)
+        n = save_wallet(w)
     return w
             
 
@@ -145,7 +145,7 @@ def save_wallet(wallet,path=None):
     except Exception as e:
         print("Error saving wallet:",str(e))
         return False
-    return True
+    return p.stem
 
 if __name__=="__main__":
     w = create_wallet()
