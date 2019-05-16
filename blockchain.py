@@ -1,5 +1,6 @@
 import hashlib, json, time, uuid, datetime, copy
 from wallet_utils import *
+from ecdsa.keys import BadSignatureError
 
 class Blockchain:
     
@@ -48,9 +49,6 @@ class Blockchain:
 
         # Add the hash to the block
         block['hash'] = self.hash_block(block)
-
-        # Reset the current list of transactions
-        self.current_transactions = []
 
         return block
 
@@ -309,7 +307,7 @@ class Blockchain:
         amount = txn['amount']
 
         # Get the signature and the recipient address
-        s = bytes.fromhex(txn['signature'])
+        s = txn['signature']
         recipient = txn['recipient']
 
         # Make a copy and delete the signature to verify
@@ -317,7 +315,12 @@ class Blockchain:
         del v['signature']
 
         # It's valid if it's a reward transaction (sender='0') or if it's a normal transaction (sender=<current wallet address> and the signature verifies the content)
-        return e.verify(s, v) and state.get(sender,0)>=amount
+        try:
+            e.verify(s, v)
+            verified = True
+        except BadSignatureError:
+            verified = False
+        return verified and state.get(sender,0)>=amount
 
     def is_valid_chain(self, chain=None):
         """
