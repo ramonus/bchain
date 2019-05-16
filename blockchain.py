@@ -229,7 +229,7 @@ class Blockchain:
         t = {
             'sender': address,
             'recipient': recipient,
-            'amount': amount,
+            'amount': float(amount),
             'timestamp': datetime.datetime.now().isoformat(),
             'public_key': public,
         }
