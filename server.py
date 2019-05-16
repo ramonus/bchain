@@ -1,5 +1,5 @@
 import hashlib, json, time, uuid
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 from blockchain import Blockchain
 
 # Instantiate our node
@@ -144,5 +144,28 @@ def state_all():
     
     return jsonify(state), 200
 
+
+
+"""
+This section will be a test gui to simplify debugging
+"""
+
+@app.route("/")
+def root():
+    return render_template('index.html')
+
+@app.route("/new_transaction")
+def ntransaction():
+    return render_template('newt_gui.html')
+
+@app.route("/get_wallets")
+def get_wallets():
+    from pathlib import Path
+    p = Path("wallets")
+    wallets = []
+    for pa in p.iterdir():
+        w = {"name":pa.stem, "wallet": json.loads(pa.read_text())}
+        wallets.append(w)
+    return jsonify(wallets), 200
 if __name__=="__main__":
     app.run(host='0.0.0.0',port=5000)
