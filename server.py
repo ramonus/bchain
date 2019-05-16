@@ -119,6 +119,14 @@ def full_chain():
 
     return jsonify(response), 200
 
+@app.route("/chain/last",methods=['GET'])
+def last_block():
+    """
+    GET request to view the last block on node's chain.
+    """
+    
+    return jsonify(blockchain.last_block), 200
+
 @app.route("/state",methods=['GET'])
 def state():
     """
