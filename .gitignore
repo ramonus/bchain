@@ -1,4 +1,4 @@
 *.dat
 __pycache__
 wallets
-chain.json
+*.json

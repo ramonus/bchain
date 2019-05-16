@@ -15,3 +15,7 @@ wallet_namef = "wallet-{}.dat"
 #chain defaults
 
 chain_path = "chain.json"
+
+# Transactions defaults
+
+transactions_path = "unconfirmed_transactions.json"

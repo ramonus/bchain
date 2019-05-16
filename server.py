@@ -77,7 +77,7 @@ def new_transaction():
         state = blockchain.update_state(state, blockchain.current_transactions)
         # Check transaction validity
         if blockchain.is_valid_transaction(state, t):
-            blockchain.current_transactions.append(t)
+            blockchain.update_transactions(t)
             msg = "Done"
         else:
             msg = "Not enough funds, maybe some are reserved"
@@ -101,6 +101,18 @@ def transactions():
 
     return jsonify(blockchain.current_transactions), 200
 
+@app.route("/transactions/hash",methods=['GET'])
+def get_transaction_hash():
+    """
+    GET request to view all pending transactions hash in a list.
+    """
+    # Get state
+    state = blockchain.is_valid_chain()
+    # Get all transactions hash
+    hashes = [t['hash'] for t in blockchain.current_transactions if blockchain.is_valid_transaction(state, t)]
+
+    return jsonify(hashes), 200
+
 @app.route("/transactions/length",methods=['GET'])
 def transactions_length():
     """
@@ -112,6 +124,32 @@ def transactions_length():
         "length": len(blockchain.current_transactions),
     }
     return jsonify(resp), 200
+
+@app.route("/transaction/<hash>")
+def get_transaction(hash):
+    """
+    GET request to retrive a single transaction given a hash.
+    """
+
+    tra = [i for i in blockchain.current_transactions if i['hash']==hash]
+    if len(tra)==1:
+        return jsonify(tra[0]), 200
+    elif len(tra)==0:
+        
+        # Create response
+        resp = {
+            "error":"No transaction found with hash: "+hash
+        }
+        
+        return jsonify(resp), 200
+    else:
+        
+        # Create response
+        resp = {
+            "error":"Error, multiple transactions found!",
+        }
+
+        return jsonify(resp), 200
 
 @app.route("/chain",methods=['GET'])
 def full_chain():
@@ -165,7 +203,6 @@ def state_all():
     state = blockchain.update_state(state, blockchain.current_transactions)
     
     return jsonify(state), 200
-
 
 
 """

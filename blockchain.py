@@ -1,6 +1,7 @@
 import hashlib, json, time, uuid, datetime, copy
 from wallet_utils import *
 from chain_utils import *
+from transaction_utils import *
 from ecdsa.keys import BadSignatureError
 
 class Blockchain:
@@ -9,7 +10,7 @@ class Blockchain:
 
     def __init__(self):
         self.chain = load_chain()
-        self.current_transactions = []
+        self.current_transactions = load_transactions()
         self.wallet = get_wallet()
         # Creates the genesis block
         if len(self.chain)==0:
@@ -82,6 +83,18 @@ class Blockchain:
         """
         self.chain.append(block)
         save_chain(self.chain)
+        return True
+    
+    def update_transactions(self, transaction):
+        """
+        Adds a new transaction to the transaction pool.
+
+        :param transaction: <dict> Transaction to add.
+        :return: <bool> True if the transaction was successfully added.
+        """
+
+        self.current_transactions.append(transaction)
+        save_transactions(self.current_transactions)
         return True
 
     # Deprecated function!!!
@@ -258,7 +271,7 @@ class Blockchain:
         }
 
         # Create and add a hash of the transaction
-        t['hash'] = self.hash_transaction(t)
+        t['hash'] = Blockchain.hash_transaction(t)
 
         # Sign the transaction with the private key of the sender
         e = ECDSA(privatekey=bytes.fromhex(private))
