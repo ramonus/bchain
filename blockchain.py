@@ -1,5 +1,6 @@
 import hashlib, json, time, uuid, datetime, copy
 from wallet_utils import *
+from chain_utils import *
 from ecdsa.keys import BadSignatureError
 
 class Blockchain:
@@ -7,11 +8,12 @@ class Blockchain:
     BLOCK_SIZE = 10
 
     def __init__(self):
-        self.chain = []
+        self.chain = load_chain()
         self.current_transactions = []
         self.wallet = get_wallet()
         # Creates the genesis block
-        self.update_chain(self.create_genesis_block())
+        if len(self.chain)==0:
+            self.update_chain(self.create_genesis_block())
 
     def new_block(self, n, timestamp, tokens, previous_hash, previous_pow=None):
         """
@@ -79,6 +81,7 @@ class Blockchain:
         :param block: <dict> Block to add.
         """
         self.chain.append(block)
+        save_chain(self.chain)
         return True
 
     # Deprecated function!!!
@@ -206,6 +209,26 @@ class Blockchain:
 
         # return hexdigest
         return hashlib.sha256(json.dumps(block, sort_keys=True).encode()).hexdigest()
+    @staticmethod
+    def hash_transaction(txn):
+        """
+        Creates a hash of a transaction dict excluding the signature and hash fields.
+
+        :param txn: <dict> Transaction to hash.
+        :return: <str> String representation of the transaction hash.
+        """
+
+        # Create a copy of the transaction
+        tx = copy.deepcopy(txn)
+
+        # Exclude hash and signature
+        to_exclude = ["hash","signature"]
+        for d in to_exclude:
+            if d in tx:
+                del tx[d]
+        
+        # Return hexdigest
+        return hashlib.sha256(json.dumps(tx, sort_keys=True).encode()).hexdigest()
 
     @staticmethod
     def create_transaction(wallet, recipient, amount):
@@ -229,10 +252,13 @@ class Blockchain:
         t = {
             'sender': address,
             'recipient': recipient,
-            'amount': float(amount),
+            'amount': float(amount)*1.0,
             'timestamp': datetime.datetime.now().isoformat(),
             'public_key': public,
         }
+
+        # Create and add a hash of the transaction
+        t['hash'] = self.hash_transaction(t)
 
         # Sign the transaction with the private key of the sender
         e = ECDSA(privatekey=bytes.fromhex(private))
@@ -262,6 +288,9 @@ class Blockchain:
             'public_key': wallet['public'],
         }
 
+        # Create and add hash to the transaction
+        t['hash'] = Blockchain.hash_transaction(t)
+
         # Get bytes representation of private and public keys
         public = bytes.fromhex(wallet['public'])
         private = bytes.fromhex(wallet['private'])
@@ -286,10 +315,14 @@ class Blockchain:
         """
         
         # Check required transaction fields
-        required = ['sender', 'recipient', 'amount', 'timestamp', 'public_key', 'signature']
+        required = ['sender', 'recipient', 'amount', 'timestamp', 'public_key', 'signature', 'hash']
         for r in required:
             if r not in txn:
                 return False
+
+        # First check if the hash is correct
+        if txn['hash']!=Blockchain.hash_transaction(txn):
+            return False
 
         if txn['sender']=='0':
             return True
