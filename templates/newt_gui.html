@@ -1,0 +1,98 @@
+<html>
+    <head>
+        <title>New Transaction</title>
+        <script
+            src="https://code.jquery.com/jquery-3.4.1.min.js"
+            integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+            crossorigin="anonymous"></script>
+        <script type="text/javascript">
+            var wallets = [];
+            $(()=>{
+                get_wallets();
+            });
+            function get_wallets(){
+                $.ajax({
+                    type: "GET",
+                    url:"/get_wallets",
+                    success: function(r){
+                        console.log("Wallets:",r);
+                        let data = r;
+                        let rhtml = "";
+                        data.forEach((w)=>{
+                            let ws = JSON.stringify(w['wallet'])
+                            rhtml += `<div id="${w['name']}" class="wallet" onclick="update_wallet('${w['name']}')">Name:&nbsp;${w['name']}&nbsp;&nbsp;&nbsp;Wallet:&nbsp;${w['wallet']['address']}</div>`;
+                        });
+                        $('#wallets').html(rhtml)
+                        wallets = data;
+                    },
+                });
+            }
+            function update_wallet(name){
+                wallets.forEach((w)=>{
+                    if(w['name']===name){
+                        console.log("Wallet found");
+                        let str = JSON.stringify(w["wallet"]);
+                        console.log("Wallet:",str);
+                        $('#s_wallet').val(str);
+                        console.log("Wallet updated!")
+                    }
+                });
+            }
+            function sendPost(wallet, recipient, amount){
+                console.log("Making request");
+                $("#response").html("Waiting for response...");
+                let req = {
+                    wallet: JSON.parse(wallet),
+                    recipient: recipient,
+                    amount: parseFloat(amount),
+                }
+                $.ajax({
+                    type: "POST",
+                    url: "/transactions/new",
+                    data: JSON.stringify(req),
+                    success: function(r){
+                        console.log(r);
+                        $("#response").html(JSON.stringify(r));
+                    },
+                });
+                console.log("Request done!");
+            }
+        </script>
+        <style>
+            input[name="wallet"]{
+                width:100%;
+            }
+            .wallet{
+                background-color: lightblue;
+                cursor: pointer;
+                padding: 5px;
+            }
+            .wallet:hover{
+                background-color: rgb(112, 145, 156);
+            }
+        </style>
+    </head>
+    <body>
+        <div id="wallets">
+            Waiting wallets...
+        </div>
+        <form>
+            Wallet:
+            <br>
+            <input type="text" name="wallet" id="s_wallet" value='{"address": "1GJVTaiAjuAKf1N8cMrK3oZAVryrGKJpbW", "private": "81eb8543c6680bf09b4b444646e9fd80dab01f1c6c6d4a1438b658b4df856511", "public": "58e26287ff7e85019d9167f71fcb37652329a3e756ed6769d8f5fb21585cf6c88e849a80991678658290ecb587b5cc223884d93eb9f665b61a20063e8455a4d0"}'required autofocus>
+            <br>
+            Recipient:
+            <br>
+            <input name="recipient" type="text" value='19WL9w1uPHskdXbKyFM68FWfvBKquxtVe6' required>
+            <br>
+            Amount:
+            <br>
+            <input type="text" name="amount" value='0.5' required>
+            <br>
+            <input type="button" name="sbutton" value="Make transaction" onclick="sendPost(this.form.wallet.value,this.form.recipient.value,this.form.amount.value)">
+        </form>
+        <div id="response">
+            Waiting for submission...
+        </div>
+    </body>
+</html>
