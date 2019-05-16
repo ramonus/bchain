@@ -76,18 +76,19 @@
         <div id="wallets">
             Waiting wallets...
         </div>
+        <a href="/new_wallet"><button>Create new wallet</button></a>
         <form>
             Wallet:
             <br>
-            <input type="text" name="wallet" id="s_wallet" value='{"address": "1GJVTaiAjuAKf1N8cMrK3oZAVryrGKJpbW", "private": "81eb8543c6680bf09b4b444646e9fd80dab01f1c6c6d4a1438b658b4df856511", "public": "58e26287ff7e85019d9167f71fcb37652329a3e756ed6769d8f5fb21585cf6c88e849a80991678658290ecb587b5cc223884d93eb9f665b61a20063e8455a4d0"}'required autofocus>
+            <input type="text" name="wallet" id="s_wallet" required autofocus>
             <br>
             Recipient:
             <br>
-            <input name="recipient" type="text" value='19WL9w1uPHskdXbKyFM68FWfvBKquxtVe6' required>
+            <input name="recipient" type="text" required>
             <br>
             Amount:
             <br>
-            <input type="text" name="amount" value='0.5' required>
+            <input type="text" name="amount" required>
             <br>
             <input type="button" name="sbutton" value="Make transaction" onclick="sendPost(this.form.wallet.value,this.form.recipient.value,this.form.amount.value)">
         </form>
