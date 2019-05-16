@@ -1,8 +1,10 @@
 from Hybrid.ECDSA import ECDSA
 from base58 import b58encode
-import hashlib
+import hashlib, json
+from pathlib import Path
 
 sha = lambda x: hashlib.sha256(x if isinstance(x,bytes) else x.encode()).digest()
+
 def ripemd160(x,_hex=False):
     """
     Calculates a ripemd160 hash of a given bytes
@@ -19,9 +21,28 @@ def ripemd160(x,_hex=False):
     else:
         return ri.digest()
 
-def get_wallet():
-    # Reads the saved wallet or creates a new one if not found
-    pass
+def get_wallet(path='wallet.dat'):
+    """
+    Loads a wallet or creates a new one
+
+    :param path: <str> (Optional) Path of the .dat file, default to 'wallet.dat'.
+    :return: <dict> Wallet dict
+    """
+    p = Path(path)
+    error = False
+    if p.exists():
+        try:
+            w = json.loads(p.read_text())
+        except:
+            print("Wallet corrupted")
+            error = True
+    else:
+        error = True
+    if error:
+        w = create_wallet()
+        save_wallet(w)
+    return w
+            
 
 def calculate_address(public):
     """
@@ -60,10 +81,6 @@ def calculate_address(public):
     
     return en.decode()
 
-    
-    
-
-
 def create_wallet():
     """
     Creates a brand new wallet
@@ -79,12 +96,30 @@ def create_wallet():
 
     # Create the wallet dict
     wallet = {
-        'direction': wallet_dir,
+        'address': wallet_dir,
         'public': public.hex(),
         'private': private.hex(),
     }
 
     return wallet
+
+def save_wallet(wallet,path='wallet.dat'):
+    """
+    Saves a wallet to a specified file.
+
+    :param wallet: <dict> Wallet to save.
+    :param path: <str> (Optional) Where to save the wallet.
+    :return: <bool> True if success, otherwise False
+    """
+
+    p = Path(path)
+    
+    try:
+        p.write_text(json.dumps(wallet, sort_keys=True))
+    except Exception as e:
+        print("Error saving wallet:",str(e))
+        return False
+    return True
 
 if __name__=="__main__":
     w = create_wallet()
