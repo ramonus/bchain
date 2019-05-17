@@ -16,6 +16,7 @@ class Blockchain:
         self.current_transactions = load_transactions()
         self.wallet = get_wallet()
         self.nodes = load_data("nodes.json")
+        self.chain_transaction_hashes = set()
         # Creates the genesis block
         if len(self.chain)==0:
             self.update_chain(self.create_genesis_block())
@@ -87,8 +88,16 @@ class Blockchain:
         """
         self.chain.append(block)
         save_chain(self.chain)
+        threading.Thread(target=self.spread_block,args=(self.nodes, block)).start()
+
         return True
     
+    def update_transactions(self,transactions):
+        r = []
+        for t in transactions:
+            r.append(self.update_transaction(t))
+        return r
+
     def update_transaction(self, transaction):
         """
         Adds a new transaction to the transaction pool.
@@ -97,7 +106,7 @@ class Blockchain:
         :return: <bool> True if the transaction was successfully added.
         """
         hashes = [t['hash'] for t in self.current_transactions]
-        if transaction['hash'] not in hashes:
+        if transaction['hash'] not in hashes and transaction['hash'] not in self.chain_transaction_hashes:
             self.current_transactions.append(transaction)
             save_transactions(self.current_transactions)
             threading.Thread(target=self.spread_transaction,args=(self.nodes,transaction,)).start()
@@ -107,14 +116,21 @@ class Blockchain:
 
     @staticmethod
     def spread_transaction(nodes, transaction):
-        if len(nodes)>0:
-            for node in nodes:
-                print("Sending to:",node)
-                data = json.dumps(transaction, sort_keys=True)
-                r = requests.post(node+"/transactions/add", data=data)
-                print("status:",r.status_code)
-                print("Result:",r.content)
-
+        for node in nodes:
+            print("Sending transaction to:",node)
+            data = json.dumps(transaction, sort_keys=True)
+            r = requests.post(node+"/transactions/add", data=data)
+            print("status:",r.status_code)
+            print("Result:",r.content)
+    
+    @staticmethod
+    def spread_block(nodes,block):
+        for node in nodes:
+            print("Sending block to",node)
+            data = json.dumps(block, sort_keys=True)
+            r = requests.post(node+"/chain/add",data=data)
+            print("status:",r.status_code)
+            print("Result:",r.content)
 
     # Deprecated function!!!
     # def new_transaction(self, sender, recipient, amount):
@@ -516,20 +532,69 @@ class Blockchain:
             self.current_transactions = tr+self.current_transactions
         return False
         
-    def resolve_chains(self):
-        """
-        Checks for every node last_block and if it differs, asks for a full chain and applies consensus algorithm.
-        """
+    @staticmethod
+    def retrive_last_block(node):
+        url = node+"/chain/last"
+        r = requests.get(url)
+        nlb = json.loads(r.text)
+        return lb
+    
+    def clean_transactions(self):
+        state = self.is_valid_chain()
+        hashes = self.get_transaction_hashes()
+        for t in self.current_transactions:
+            if t['hash'] in hashes:
+                self.current_transactions.remove(t)
+        save_transactions(self.current_transactions)
 
-        for node in self.nodes:
-            url = node+"/chain/last"
-            r = requests.get(url)
-            if r.status_code==200:
-                lb = r.json()
-                
-                # Check if blocks are equal
-                if json.dumps(self.last_block, sort_keys=True)==json.dumps(lb, sort_keys=True):
-                    # They are equal, continue
-                    continue
+    @staticmethod
+    def retrive_chain(node):
+        url = nod+"/chain"
+        r = requests.get(url)
+        chain = json.loads(r.text)
+        return chain
+    
+    def get_transaction_hashes(self, chain=None):
+        if chain is None:
+            chain = self.chain
+        hashes = set()
+        for block in chain:
+            for transaction in block['tokens']:
+                hashes.add(transaction['hash'])
+        return hashes
+
+    def resolve_chain(self, node):
+        
+        node_last_block = self.retrive_last_block(node)
+        last_block = self.last_block
+        
+        # Check if hashes are correct
+        if node_last_block['hash']!=self.hash_block(node_last_block):
+            print("Error on node last block")
+            return False
+        if last_block['hash']!=self.hash_block(last_block):
+            print("Error on current chain!")
+            return False
+        
+        # Check if blocks are equal
+        if node_last_block['hash']!=last_block['hash']:
+            # If are not equal, we need to check which chain is longer
+            if node_last_block['block_n']>last_block['block_n']:
+                # If the node's chain is longer than ours
+                node_chain = self.retrive_chain(node)
+                # If the node's chain is correct
+                if self.is_valid_chain(node_chain):
+                    # Then we update our chain
+                    self.chain = node_chain
+                    save_chain(self.chain)
+                    self.clean_transactions()
+                    return True
                 else:
-                    pass
+                    # The node chain is invalid
+                    return False
+            else:
+                # If our chain is longer
+                return False
+        else:
+            # If chain last blocks are equal
+            return False

@@ -198,6 +198,21 @@ def full_chain():
 
     return jsonify(blockchain.chain), 200
 
+@app.route("/chain/add",methods=['POST'])
+def add_block():
+
+    b = json.loads(request.get_data().decode())
+    if blockchain.is_valid_next_block(blockchain.last_block, b):
+        blockchain.update_chain(b)
+        return jsonify(b['hash']), 201
+    else:
+        node = "http://"+request.remote_addr
+        updated = blockchain.resolve_chain(node)
+        if updated:
+            return jsonify("Chain updated"), 201
+        else:
+            return jsonify("Chain not updated"), 401
+
 @app.route("/chain/length",methods=['GET'])
 def chain_length():
     """
@@ -285,4 +300,4 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-p","--port",default=5000, type=int, help="Port to run node on")
     args = parser.parse_args()
-    app.run(host='0.0.0.0',port=args.port)
+    app.run(host='0.0.0.0',port=args.port, debug=True)
