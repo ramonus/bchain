@@ -54,11 +54,11 @@ def add_transaction():
     tr = json.loads(request.get_data().decode())
     state = blockchain.is_valid_chain()
     state = blockchain.update_state(state, blockchain.current_transactions)
-    if blockchain.is_valid_transaction(tr):
+    if blockchain.is_valid_transaction(state,tr):
         blockchain.update_transaction(tr)
-        return tr['hash'],201
+        return jsonify(tr['hash']), 201
     else:
-        return False, 401
+        return jsonify(False), 401
     
 
 

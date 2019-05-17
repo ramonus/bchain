@@ -96,21 +96,24 @@ class Blockchain:
         :param transaction: <dict> Transaction to add.
         :return: <bool> True if the transaction was successfully added.
         """
-
-        self.current_transactions.append(transaction)
-        save_transactions(self.current_transactions)
-        threading.Thread(target=self.spread_transaction,args=(transaction)).start()
-        return True
+        hashes = [t['hash'] for t in self.current_transactions]
+        if transaction['hash'] not in hashes:
+            self.current_transactions.append(transaction)
+            save_transactions(self.current_transactions)
+            threading.Thread(target=self.spread_transaction,args=(self.nodes,transaction,)).start()
+            return True
+        else:
+            return False
 
     @staticmethod
-    def spread_transaction(transaction):
-        efectivity = 0
-        for node in self.nodes:
-            data = json.dumps(transaction, sort_keys=True)
-            r = requests.post(node, data=data)
-            if r.status_code == 201:
-                efectivity += 1
-        print("Spread efectivity:",efectivity/len(self.nodes))
+    def spread_transaction(nodes, transaction):
+        if len(nodes)>0:
+            for node in nodes:
+                print("Sending to:",node)
+                data = json.dumps(transaction, sort_keys=True)
+                r = requests.post(node+"/transactions/add", data=data)
+                print("status:",r.status_code)
+                print("Result:",r.content)
 
 
     # Deprecated function!!!
@@ -347,10 +350,12 @@ class Blockchain:
         required = ['sender', 'recipient', 'amount', 'timestamp', 'public_key', 'signature', 'hash']
         for r in required:
             if r not in txn:
+                print("Missing keys")
                 return False
 
         # First check if the hash is correct
         if txn['hash']!=Blockchain.hash_transaction(txn):
+            print("incorrect hash")
             return False
 
         if txn['sender']=='0':
@@ -381,6 +386,7 @@ class Blockchain:
             e.verify(s, v)
             verified = True
         except BadSignatureError:
+            print("Signatre error")
             verified = False
         return verified and state.get(sender,0)>=amount
 
