@@ -19,3 +19,7 @@ chain_path = "chain.json"
 # Transactions defaults
 
 transactions_path = "unconfirmed_transactions.json"
+
+#nodes defaults
+
+max_nodes = 8

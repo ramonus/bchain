@@ -8,7 +8,37 @@
         <script type="text/javascript">
             var wallets = [];
             $(()=>{
+                var wallet_input = $('#s_wallet'), recipient_input = $('#recipient'), activeInput = wallet_input;
+                activeInput.focus();
+
                 get_wallets();
+                
+                $('input').on('focus',(e)=>{
+                    activeInput = $(e.target);
+                    console.log("This input:",this);
+                    console.log("Id",activeInput.attr("id"));
+                });
+
+                $("#wallets").on("click",".wallet",function(e){
+                    console.log("Getting name");
+                    let name = e.target.getAttribute("fname");
+                    console.log("Updating wallet:",name);
+                    update_wallet(name);
+                });
+                
+                function update_wallet(name){
+                    wallets.forEach((w)=>{
+                        if(w['name']===name){
+                            if(activeInput.is(wallet_input)){
+                                let str = JSON.stringify(w["wallet"]);
+                                $('#s_wallet').val(str);
+                            }else
+                            if(activeInput.is(recipient_input)){
+                                $('#recipient').val(w['wallet']['address']);
+                            }
+                        }
+                    });
+                }
             });
             function get_wallets(){
                 $.ajax({
@@ -20,22 +50,11 @@
                         let rhtml = "";
                         data.forEach((w)=>{
                             let ws = JSON.stringify(w['wallet'])
-                            rhtml += `<div id="${w['name']}" class="wallet" onclick="update_wallet('${w['name']}')">Name:&nbsp;${w['name']}&nbsp;&nbsp;&nbsp;Wallet:&nbsp;${w['wallet']['address']}</div>`;
+                            rhtml += `<div id="${w['name']}" class="wallet" fname='${w['name']}'>Name:&nbsp;${w['name']}&nbsp;&nbsp;&nbsp;Wallet:&nbsp;${w['wallet']['address']}</div>`;
                         });
                         $('#wallets').html(rhtml)
                         wallets = data;
                     },
-                });
-            }
-            function update_wallet(name){
-                wallets.forEach((w)=>{
-                    if(w['name']===name){
-                        console.log("Wallet found");
-                        let str = JSON.stringify(w["wallet"]);
-                        console.log("Wallet:",str);
-                        $('#s_wallet').val(str);
-                        console.log("Wallet updated!")
-                    }
                 });
             }
             function sendPost(wallet, recipient, amount){
@@ -84,7 +103,7 @@
             <br>
             Recipient:
             <br>
-            <input name="recipient" type="text" required>
+            <input name="recipient" id='recipient' type="text" required>
             <br>
             Amount:
             <br>

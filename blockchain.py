@@ -1,4 +1,4 @@
-import hashlib, json, time, uuid, datetime, copy, requests
+import hashlib, json, time, uuid, datetime, copy, requests, random
 from wallet_utils import *
 from chain_utils import *
 from transaction_utils import *
@@ -11,7 +11,8 @@ class Blockchain:
     
     BLOCK_SIZE = 10
 
-    def __init__(self):
+    def __init__(self,port=5000):
+        self.port = port
         self.chain = load_chain()
         self.current_transactions = load_transactions()
         self.wallet = get_wallet()
@@ -86,9 +87,11 @@ class Blockchain:
 
         :param block: <dict> Block to add.
         """
+        
         self.chain.append(block)
         save_chain(self.chain)
-        threading.Thread(target=self.spread_block,args=(self.nodes, block)).start()
+        self.clean_transactions()
+        threading.Thread(target=self.spread_block,args=(self.nodes, block, self.port)).start()
 
         return True
     
@@ -106,7 +109,7 @@ class Blockchain:
         :return: <bool> True if the transaction was successfully added.
         """
         hashes = [t['hash'] for t in self.current_transactions]
-        if transaction['hash'] not in hashes and transaction['hash'] not in self.chain_transaction_hashes:
+        if transaction['hash'] not in hashes and transaction['hash'] not in self.get_transaction_hashes():
             self.current_transactions.append(transaction)
             save_transactions(self.current_transactions)
             threading.Thread(target=self.spread_transaction,args=(self.nodes,transaction,)).start()
@@ -116,21 +119,32 @@ class Blockchain:
 
     @staticmethod
     def spread_transaction(nodes, transaction):
+        print("="*50)
+        print("Starting transaction: {} spread.".format(transaction['hash']))
         for node in nodes:
             print("Sending transaction to:",node)
             data = json.dumps(transaction, sort_keys=True)
             r = requests.post(node+"/transactions/add", data=data)
             print("status:",r.status_code)
-            print("Result:",r.content)
+            p = Path("transaction_spread.log")
+            p.write_bytes(r.content)
+        print("End transaction spread")
+        print("="*50)
     
     @staticmethod
-    def spread_block(nodes,block):
+    def spread_block(nodes,block,port=5000):
+        print("="*50)
+        print("Starting block {} spreading.".format(block['block_n']))
         for node in nodes:
             print("Sending block to",node)
             data = json.dumps(block, sort_keys=True)
-            r = requests.post(node+"/chain/add",data=data)
+            headers = {"port":str(port)}
+            r = requests.post(node+"/chain/add",headers=headers,data=data)
             print("status:",r.status_code)
-            print("Result:",r.content)
+            p = Path("block_spread.log")
+            p.write_bytes(r.content)
+        print("End block spread.")
+        print("="*50)
 
     # Deprecated function!!!
     # def new_transaction(self, sender, recipient, amount):
@@ -449,16 +463,55 @@ class Blockchain:
             last_block = block
         return state
     
-    @staticmethod
-    def is_valid_node(node):
+    def is_valid_node(self, node):
         """
         Checks if the node is a valid node.
 
         :param node: <str> Url/ip of the node to validate.
         :return: <bool> True if it's valid.
         """
-        return True
+
+        try:
+            lb = self.last_block
+            data = json.dumps(lb)
+            headers = {"port":str(self.port)}
+            r = requests.post(node+"/chain/add",headers=headers, data=data)
+            return True
+        except Exception as e:
+            print("Error validating node {}".format(node))
+            return False
     
+    def discover_nodes(self):
+        print("="*50)
+        print("Node discovery started.")
+        picked_nodes = []
+        added = 0
+        while len(self.nodes)<config.max_nodes and sorted(picked_nodes)!=sorted(self.nodes):
+            cnode = self.nodes[random.randint(0,len(self.nodes)-1)]
+            picked_nodes.append(cnode)
+            print("Picked:",cnode)
+            if self.is_valid_node(cnode):
+                print("Node valid.")
+                try:
+                    rnodes = self.retrive_nodes(cnode)
+                    print("Got:",rnodes)
+                    for node in rnodes:
+                        
+                        if node not in self.nodes:
+                            if self.add_node(node):
+                                added += 1
+                                print("New node added:",node)
+                            else:
+                                print("Invalid node:",node)
+                        else:
+                            print("Node {} already exists.".format(node))
+                except Exception as e:
+                    print("Error getting nodes from {}: {}".format(cnode,str(e)))
+            else:
+                print("Invalid node")
+        print("Finished node discovery. Added {} new nodes.".format(added))
+        print("="*50)
+
     def add_node(self, node):
         """
         Adds a node to the nodes list.
@@ -466,7 +519,7 @@ class Blockchain:
         :param node: <str> Node to add.
         """
 
-        if self.is_valid_node(node):
+        if self.is_valid_node(node) and node not in self.nodes:
             self.nodes.append(node)
             save_data(self.nodes, "nodes.json")
             return True
@@ -537,8 +590,13 @@ class Blockchain:
         url = node+"/chain/last"
         r = requests.get(url)
         nlb = json.loads(r.text)
-        return lb
-    
+        return nlb
+
+    @staticmethod
+    def retrive_nodes(node):
+        url = node+"/nodes"
+        r = requests.get(url)
+        return json.loads(r.text)
     def clean_transactions(self):
         state = self.is_valid_chain()
         hashes = self.get_transaction_hashes()
@@ -549,7 +607,7 @@ class Blockchain:
 
     @staticmethod
     def retrive_chain(node):
-        url = nod+"/chain"
+        url = node+"/chain"
         r = requests.get(url)
         chain = json.loads(r.text)
         return chain
@@ -565,7 +623,11 @@ class Blockchain:
 
     def resolve_chain(self, node):
         
-        node_last_block = self.retrive_last_block(node)
+        try:
+            node_last_block = self.retrive_last_block(node)
+        except Exception as e:
+            print("Error getting {} last_block: {}".format(node, str(e)))
+            return False
         last_block = self.last_block
         
         # Check if hashes are correct
@@ -576,14 +638,23 @@ class Blockchain:
             print("Error on current chain!")
             return False
         
+        print("Last block comparison for chain equality test.")
         # Check if blocks are equal
         if node_last_block['hash']!=last_block['hash']:
+            print("Last block comparision differs!!!")
             # If are not equal, we need to check which chain is longer
             if node_last_block['block_n']>last_block['block_n']:
+                print("Chain on {} is longer than ours, trying to fetch the full chain.".format(node))
                 # If the node's chain is longer than ours
-                node_chain = self.retrive_chain(node)
+                try:
+                    node_chain = self.retrive_chain(node)
+                except Exception as e:
+                    print("Error getting {} chain: {}".format(node, str(e)))
+                    return False
+                print("Chain recived!")
                 # If the node's chain is correct
                 if self.is_valid_chain(node_chain):
+                    print("The chain is valid.")
                     # Then we update our chain
                     self.chain = node_chain
                     save_chain(self.chain)
@@ -591,10 +662,13 @@ class Blockchain:
                     return True
                 else:
                     # The node chain is invalid
+                    print("Invalid chain!")
                     return False
             else:
                 # If our chain is longer
+                print("Our chain is equal or longer.")
                 return False
         else:
             # If chain last blocks are equal
+            print("Chains are equal")
             return False

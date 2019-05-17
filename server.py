@@ -2,6 +2,11 @@ import hashlib, json, time, uuid, argparse
 from flask import Flask, jsonify, request, render_template
 from blockchain import Blockchain
 from wallet_utils import create_wallet, save_wallet
+import threading
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-p","--port",default=5000, type=int, help="Port to run node on")
+args = parser.parse_args()
 
 # Instantiate our node
 app = Flask(__name__)
@@ -10,7 +15,7 @@ app = Flask(__name__)
 node_identifier = str(uuid.uuid4()).replace("-","")
 
 # Instantiate Blockchain
-blockchain = Blockchain()
+blockchain = Blockchain(port=args.port)
 
 
 @app.route("/mine",methods=['GET'])
@@ -56,11 +61,11 @@ def add_transaction():
     state = blockchain.update_state(state, blockchain.current_transactions)
     if blockchain.is_valid_transaction(state,tr):
         blockchain.update_transaction(tr)
+        print("Added transaction:",tr['hash'])
         return jsonify(tr['hash']), 201
     else:
+        print("Couldn't add. Invalid transaction:",tr['hash'])
         return jsonify(False), 401
-    
-
 
 @app.route("/transactions/new",methods=['POST'])
 def new_transaction():
@@ -189,6 +194,10 @@ def add_node():
         return jsonify(True), 200
     else:
         return jsonify(False), 401
+@app.route("/nodes/discover",methods=['GET'])
+def discover_nodes():
+    threading.Thread(target=blockchain.discover_nodes).start()
+    return "Discovery started.", 201
 
 @app.route("/chain",methods=['GET'])
 def full_chain():
@@ -205,12 +214,16 @@ def add_block():
     if blockchain.is_valid_next_block(blockchain.last_block, b):
         blockchain.update_chain(b)
         return jsonify(b['hash']), 201
-    else:
-        node = "http://"+request.remote_addr
+    elif request.headers.get("port",None) is not None:
+        node = "http://"+request.remote_addr+":"+str(request.headers.get("port"))
         updated = blockchain.resolve_chain(node)
         if updated:
             return jsonify("Chain updated"), 201
         else:
+            try:
+                r = requests.post(node,headers={"port": str(args.port)},data=json.dumps(blockchain.last_block))
+            except:
+                pass
             return jsonify("Chain not updated"), 401
 
 @app.route("/chain/length",methods=['GET'])
@@ -297,7 +310,4 @@ def add_node_gui():
     return render_template("add_node.html")
 
 if __name__=="__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-p","--port",default=5000, type=int, help="Port to run node on")
-    args = parser.parse_args()
     app.run(host='0.0.0.0',port=args.port, debug=True)
