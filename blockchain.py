@@ -1,4 +1,4 @@
-import hashlib, json, time, uuid, datetime, copy
+import hashlib, json, time, uuid, datetime, copy, requests
 from wallet_utils import *
 from chain_utils import *
 from transaction_utils import *
@@ -413,6 +413,21 @@ class Blockchain:
             last_block = block
         return state
     
+    @staticmethod
+    def is_valid_node(node):
+        """
+        Checks if the node is a valid node.
+
+        :param node: <str> Url/ip of the node to validate.
+        :return: <bool> True if it's valid.
+        """
+        return True
+    
+    def add_node(self, node):
+        if self.is_valid_node(node):
+            self.nodes.append(node)
+            save_data(self.nodes, "nodes.json")
+
     @staticmethod
     def update_state(state,txn):
         """

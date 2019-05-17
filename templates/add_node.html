@@ -1,0 +1,33 @@
+<html>
+    <head>
+        <title>New node</title>
+        <script type="text/javascript" src="/static/jquery-3.4.1.min.js"></script>
+        <script type="text/javascript">
+            function addNode(){
+                let node = $("#node").val();
+                $.ajax({
+                    type: "POST",
+                    url: "/nodes/add",
+                    data: node,
+                    success: (r)=>{
+                        let dr = JSON.parse(r);
+                        if(dr){
+                            $("#response").html("Added node: "+node);
+                        }else{
+                            $("#response").html("Could not add "+node);
+                        }
+                    },
+                });
+            }
+        </script>
+    </head>
+    <body>
+        <h1>Add a new node</h1>
+        <input type="text" id="node">
+        <br>
+        <button onclick="addNode()">Add node</button>
+    </body>
+    <div id="response">
+        Wait for request.
+    </div>
+</html>

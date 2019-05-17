@@ -1,4 +1,4 @@
-import hashlib, json, time, uuid
+import hashlib, json, time, uuid, argparse
 from flask import Flask, jsonify, request, render_template
 from blockchain import Blockchain
 from wallet_utils import create_wallet, save_wallet
@@ -44,6 +44,23 @@ def mine():
     }
     
     return jsonify(response), s
+
+@app.route("/transactions/add",methods=['POST'])
+def add_transaction():
+    """
+    Adds a new transaction to the current_transactions list if valid throught a POST request.
+    """
+
+    tr = json.loads(request.get_data().decode())
+    state = blockchain.is_valid_chain()
+    state = blockchain.update_state(state, blockchain.current_transactions)
+    if blockchain.is_valid_transaction(tr):
+        blockchain.update_transactions(tr)
+        return tr['hash'],201
+    else:
+        return False, 401
+    
+
 
 @app.route("/transactions/new",methods=['POST'])
 def new_transaction():
@@ -159,6 +176,20 @@ def get_nodes():
 
     return jsonify(blockchain.nodes), 200
 
+@app.route("/nodes/add",methods=['POST'])
+def add_node():
+    """
+    POST request to add a new node.
+    """
+
+    node = request.get_data().decode()
+
+    if blockchain.is_valid_node(node):
+        blockchain.add_node(node)
+        return jsonify(True), 200
+    else:
+        return jsonify(False), 401
+
 @app.route("/chain",methods=['GET'])
 def full_chain():
     """
@@ -246,5 +277,12 @@ def new_wallet():
 
     return jsonify(resp), 201
 
+@app.route("/add_node")
+def add_node_gui():
+    return render_template("add_node.html")
+
 if __name__=="__main__":
-    app.run(host='0.0.0.0',port=5000)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-p","--port",default=5000, type=int, help="Port to run node on")
+    args = parser.parse_args()
+    app.run(host='0.0.0.0',port=args.port)
