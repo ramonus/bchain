@@ -151,6 +151,14 @@ def get_transaction(hash):
 
         return jsonify(resp), 200
 
+@app.route("/nodes",methods=["GET"])
+def get_nodes():
+    """
+    GET request to view all current nodes.
+    """
+
+    return jsonify(blockchain.nodes), 200
+
 @app.route("/chain",methods=['GET'])
 def full_chain():
     """

@@ -2,6 +2,7 @@ import hashlib, json, time, uuid, datetime, copy
 from wallet_utils import *
 from chain_utils import *
 from transaction_utils import *
+from utils import *
 from ecdsa.keys import BadSignatureError
 
 class Blockchain:
@@ -12,6 +13,7 @@ class Blockchain:
         self.chain = load_chain()
         self.current_transactions = load_transactions()
         self.wallet = get_wallet()
+        self.nodes = load_data("nodes.json")
         # Creates the genesis block
         if len(self.chain)==0:
             self.update_chain(self.create_genesis_block())
@@ -92,7 +94,7 @@ class Blockchain:
         :param transaction: <dict> Transaction to add.
         :return: <bool> True if the transaction was successfully added.
         """
-
+        
         self.current_transactions.append(transaction)
         save_transactions(self.current_transactions)
         return True
@@ -459,7 +461,10 @@ class Blockchain:
         nb = self.create_next_block(tr)
         if self.is_valid_next_block(self.last_block, nb):
             self.update_chain(nb)
+            save_transactions(self.current_transactions)
             return nb
+        else:
+            self.current_transactions = tr+self.current_transactions
         return False
         
 
