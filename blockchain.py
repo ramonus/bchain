@@ -4,6 +4,8 @@ from chain_utils import *
 from transaction_utils import *
 from utils import *
 from ecdsa.keys import BadSignatureError
+import threading, requests
+from urllib.parse import urlparse
 
 class Blockchain:
     
@@ -87,17 +89,29 @@ class Blockchain:
         save_chain(self.chain)
         return True
     
-    def update_transactions(self, transaction):
+    def update_transaction(self, transaction):
         """
         Adds a new transaction to the transaction pool.
 
         :param transaction: <dict> Transaction to add.
         :return: <bool> True if the transaction was successfully added.
         """
-        
+
         self.current_transactions.append(transaction)
         save_transactions(self.current_transactions)
+        threading.Thread(target=self.spread_transaction,args=(transaction)).start()
         return True
+
+    @staticmethod
+    def spread_transaction(transaction):
+        efectivity = 0
+        for node in self.nodes:
+            data = json.dumps(transaction, sort_keys=True)
+            r = requests.post(node, data=data)
+            if r.status_code == 201:
+                efectivity += 1
+        print("Spread efectivity:",efectivity/len(self.nodes))
+
 
     # Deprecated function!!!
     # def new_transaction(self, sender, recipient, amount):
@@ -424,9 +438,17 @@ class Blockchain:
         return True
     
     def add_node(self, node):
+        """
+        Adds a node to the nodes list.
+
+        :param node: <str> Node to add.
+        """
+
         if self.is_valid_node(node):
             self.nodes.append(node)
             save_data(self.nodes, "nodes.json")
+            return True
+        return False
 
     @staticmethod
     def update_state(state,txn):
@@ -467,6 +489,12 @@ class Blockchain:
         return len(self.current_transactions)>=self.BLOCK_SIZE
 
     def mine(self):
+        """
+        Tries to mine a new block.
+        
+        :return: <dict> Block dict if it was successful, else False
+        """
+
         if not self.is_full():
             tr = copy.deepcopy(self.current_transactions)
             self.current_transactions = []
@@ -482,5 +510,20 @@ class Blockchain:
             self.current_transactions = tr+self.current_transactions
         return False
         
+    def resolve_chains(self):
+        """
+        Checks for every node last_block and if it differs, asks for a full chain and applies consensus algorithm.
+        """
 
-
+        for node in self.nodes:
+            url = node+"/chain/last"
+            r = requests.get(url)
+            if r.status_code==200:
+                lb = r.json()
+                
+                # Check if blocks are equal
+                if json.dumps(self.last_block, sort_keys=True)==json.dumps(lb, sort_keys=True):
+                    # They are equal, continue
+                    continue
+                else:
+                    pass

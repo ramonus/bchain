@@ -55,7 +55,7 @@ def add_transaction():
     state = blockchain.is_valid_chain()
     state = blockchain.update_state(state, blockchain.current_transactions)
     if blockchain.is_valid_transaction(tr):
-        blockchain.update_transactions(tr)
+        blockchain.update_transaction(tr)
         return tr['hash'],201
     else:
         return False, 401
@@ -94,7 +94,7 @@ def new_transaction():
         state = blockchain.update_state(state, blockchain.current_transactions)
         # Check transaction validity
         if blockchain.is_valid_transaction(state, t):
-            blockchain.update_transactions(t)
+            blockchain.update_transaction(t)
             msg = "Done"
         else:
             msg = "Not enough funds, maybe some are reserved"
