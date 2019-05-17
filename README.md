@@ -4,8 +4,8 @@ To start run:
 
 ```
 git clone https://github.com/ramonus/bchain.git
-git submodules init
-git submodules update
+git submodule init
+git submodule update
 pip install -r requirements.txt
 python server.py
 ```
