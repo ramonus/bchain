@@ -419,6 +419,7 @@ class Blockchain:
         except BadSignatureError:
             print("Signatre error")
             verified = False
+
         return verified and state.get(sender,0)>=amount
 
     def is_valid_chain(self, chain=None):
@@ -689,3 +690,41 @@ class Blockchain:
             # If chain last blocks are equal
             print("Chains are equal")
             return False
+
+    @staticmethod
+    def get_node_transaction_hashes(node):
+        url = node+"/transactions/hash"
+        r = requests.get(url)
+        hashes = json.loads(r.text)
+        return hashes
+
+    @staticmethod
+    def get_node_transaction(node,hash):
+        url = node+"/transaction/"+hash
+        r = requests.get(url)
+        t = json.loads(r.text)
+        return t
+
+    def resolve_transactions(self, node):
+        print("="*50)
+        print("Starting resolve transactions from",node)
+        try:
+            # Get node transaction hashes
+            print("Getting transaction hashes")
+            hashes = self.get_node_transaction_hashes(node)
+            print("Got:",hashes)
+            local_hashes = [t['hash'] for t in self.current_transactions]
+            tdiff = [h for h in hashes if h not in local_hashes]
+            print("Pulling {} transactions".format(len(tdiff)))
+            for h in tdiff:
+                print("Requesting:",h)
+                try:
+                    print("Transaction recived!")
+                    tr = self.get_node_transaction(node,h)
+                    self.update_transaction(tr)
+                except Exception as e:
+                    print("Error requesting transaction:",h)
+        except Exception as e:
+            print("Error resolving:",node)
+        print("Ended resolve transactions.")
+        print("="*50)

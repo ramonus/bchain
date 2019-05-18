@@ -173,6 +173,15 @@ def get_transaction(hash):
 
         return jsonify(resp), 200
 
+@app.route("/transactions/resolve")
+def resolve_transactions():
+    data = json.loads(request.data)
+    if 'node' in data:
+        threading.Thread(target=blockchain.resolve_transactions(data['node'])).start()
+        return "Transaction resolve started", 201
+    else:
+        return "Invalid request", 401
+
 @app.route("/nodes",methods=["GET"])
 def get_nodes():
     """
@@ -180,6 +189,16 @@ def get_nodes():
     """
 
     return jsonify(blockchain.nodes), 200
+
+@app.route("/nodes/resolve",methods=['POST'])
+def resolve_node():
+    data = json.loads(requests.data)
+    if 'node' in data:
+        node = data.get("node")
+        threading.Thread(target=blockchain.resolve_chain, args=(node,)).start()
+        return "Resolving started", 201
+    else:
+        return "Invalid request", 401
 
 @app.route("/nodes/add",methods=['POST'])
 def add_node():
