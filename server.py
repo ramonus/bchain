@@ -131,7 +131,7 @@ def get_transaction_hash():
     # Get state
     state = blockchain.is_valid_chain()
     # Get all transactions hash
-    hashes = [t['hash'] for t in blockchain.current_transactions if blockchain.is_valid_transaction(state, t)]
+    hashes = [t['hash'] for t in blockchain.current_transactions]
 
     return jsonify(hashes), 200
 
@@ -173,9 +173,10 @@ def get_transaction(hash):
 
         return jsonify(resp), 200
 
-@app.route("/transactions/resolve")
+@app.route("/transactions/resolve",methods=['POST'])
 def resolve_transactions():
     data = json.loads(request.data)
+    print("Data:",data)
     if 'node' in data:
         threading.Thread(target=blockchain.resolve_transactions(data['node'])).start()
         return "Transaction resolve started", 201
@@ -192,7 +193,7 @@ def get_nodes():
 
 @app.route("/nodes/resolve",methods=['POST'])
 def resolve_node():
-    data = json.loads(requests.data)
+    data = json.loads(request.data)
     if 'node' in data:
         node = data.get("node")
         threading.Thread(target=blockchain.resolve_chain, args=(node,)).start()

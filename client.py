@@ -25,7 +25,7 @@ class Client:
                 print("Resolving:",node)
                 # Iterate over each node
                 data = {'node': node}
-                r = requests.post(self.url+"/nodes/resolve")
+                r = requests.post(self.url+"/nodes/resolve",data=json.dumps(data))
                 if r.status_code==201:
                     print("Executed resolution for:",node)
                 else:
@@ -53,12 +53,14 @@ class Client:
             print("Resolving transactiond with node:",node)
             try:
                 url = self.url+"/transactions/resolve"
+                print("URL:",url)
                 data = {'node':node}
                 r = requests.post(url,data=json.dumps(data))
                 if r.status_code==201:
                     print("Transaction resolve started")
                 else:
-                    print("Error requesting transaction resolve")
+                    print("Error requesting transaction resolve:",r.status_code)
+                    print("Content:",r.content)
             except Exception as e:
                 print("Error resolving transactions with node:",node)
         print("Ended resolving transactions")
