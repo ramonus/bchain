@@ -11,8 +11,9 @@ class Blockchain:
     
     BLOCK_SIZE = 10
 
-    def __init__(self,port=5000):
+    def __init__(self, uid, port=5000):
         self.port = port
+        self.node_uid = uid
         self.chain = load_chain()
         self.current_transactions = load_transactions()
         self.wallet = get_wallet()
@@ -481,6 +482,15 @@ class Blockchain:
             print("Error validating node {}".format(node))
             return False
     
+    @staticmethod
+    def retrive_uid(node):
+        url = node+"/uid"
+        r = requests.get(url)
+        if r.status_code==200:
+            return r.text
+        else:
+            return False
+
     def discover_nodes(self):
         print("="*50)
         print("Node discovery started.")
@@ -488,6 +498,8 @@ class Blockchain:
         added = 0
         while len(self.nodes)<config.max_nodes and sorted(picked_nodes)!=sorted(self.nodes):
             cnode = self.nodes[random.randint(0,len(self.nodes)-1)]
+            while cnode in picked_nodes and len(picked_nodes)!=self.nodes:
+                cnode = self.nodes[random.randint(0,len(self.nodes)-1)]
             picked_nodes.append(cnode)
             print("Picked:",cnode)
             if self.is_valid_node(cnode):
@@ -496,7 +508,6 @@ class Blockchain:
                     rnodes = self.retrive_nodes(cnode)
                     print("Got:",rnodes)
                     for node in rnodes:
-                        
                         if node not in self.nodes:
                             if self.add_node(node):
                                 added += 1
@@ -520,9 +531,15 @@ class Blockchain:
         """
 
         if self.is_valid_node(node) and node not in self.nodes:
-            self.nodes.append(node)
-            save_data(self.nodes, "nodes.json")
-            return True
+            try:
+                uid = self.retrive_uid(node)
+                if uid!=self.node_uid:
+                    self.nodes.append(node)
+                    save_data(self.nodes, "nodes.json")
+                    return True
+            except Exception as e:
+                print("Couldn't retrive {} uid".format(node))
+            
         return False
 
     @staticmethod

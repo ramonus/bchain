@@ -15,7 +15,7 @@ app = Flask(__name__)
 node_identifier = str(uuid.uuid4()).replace("-","")
 
 # Instantiate Blockchain
-blockchain = Blockchain(port=args.port)
+blockchain = Blockchain(port=args.port, uid=node_identifier)
 
 
 @app.route("/mine",methods=['GET'])
@@ -197,7 +197,7 @@ def add_node():
 @app.route("/nodes/discover",methods=['GET'])
 def discover_nodes():
     threading.Thread(target=blockchain.discover_nodes).start()
-    return "Discovery started.", 201
+    return "Discovery started", 201
 
 @app.route("/chain",methods=['GET'])
 def full_chain():
@@ -270,6 +270,10 @@ def state_all():
     state = blockchain.update_state(state, blockchain.current_transactions)
     
     return jsonify(state), 200
+
+@app.route("/uid",methods=['GET'])
+def get_uid():
+    return node_identifier, 200
 
 
 """
