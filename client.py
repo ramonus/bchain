@@ -66,7 +66,16 @@ class Client:
         print("Ended resolving transactions")
         print("="*50)
 
-
+    def clean_transactions(self):
+        print("Cleaning transactions...")
+        try:
+            r = requests.get(self.url+"/transactions/clean")
+            if r.status_code==201:
+                print("Done!")
+            else:
+                print("Error")
+        except Exception as e:
+            print("Error cleaning transactions:",str(e))
 
 def main(args):
     client = Client(args.host, args.port)
@@ -79,6 +88,7 @@ def main(args):
         nodes = client.get_nodes()
         if nodes:
             print("Got:",nodes)
+            client.clean_transactions()
             client.resolve_nodes(nodes)
             client.resolve_transactions(nodes)
         else:

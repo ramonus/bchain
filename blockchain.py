@@ -42,6 +42,13 @@ class Blockchain:
         tokens = tokens.copy()
         tokens.append(t)
 
+        # Check the tokens/transactions
+        state = self.is_valid_chain()
+        for t in tokens:
+            if self.is_valid_transaction(state,t):
+                state = self.update_state(state, t)
+            else:
+                raise Exception("Error creating block, invalid transactions found")
         # Correct the timestamp
         if isinstance(timestamp, datetime.datetime):
             timestamp = timestamp.isoformat()
@@ -88,13 +95,15 @@ class Blockchain:
 
         :param block: <dict> Block to add.
         """
-        
-        self.chain.append(block)
-        save_chain(self.chain)
-        self.clean_transactions()
-        threading.Thread(target=self.spread_block,args=(self.nodes, block, self.port)).start()
+        if self.is_valid_next_block(self.last_block, block):
+            self.chain.append(block)
+            save_chain(self.chain)
+            self.clean_transactions()
+            threading.Thread(target=self.spread_block,args=(self.nodes, block, self.port)).start()
 
-        return True
+            return True
+        else:
+            return False
     
     def update_transactions(self,transactions):
         r = []
@@ -315,7 +324,7 @@ class Blockchain:
         t = {
             'sender': address,
             'recipient': recipient,
-            'amount': float(amount)*1.0,
+            'amount': abs(float(amount))*1.0,
             'timestamp': datetime.datetime.now().isoformat(),
             'public_key': public,
         }
@@ -436,6 +445,10 @@ class Blockchain:
         else:
             chain = copy.deepcopy(chain)
         
+        # If chain it's empty, nobody owns nothing
+        if len(chain)==0:
+            return {}
+
         # Exclude the genesis block
         gb = chain.pop(0)
 
@@ -555,7 +568,11 @@ class Blockchain:
 
         # Make a copy of the state
         state = state.copy()
-
+        
+        # If it's only one transaction
+        if isinstance(txn, dict):
+            txn = [txn]
+            
         # Iterate over all transactions
         for i,tx in enumerate(txn):
             
@@ -615,11 +632,16 @@ class Blockchain:
         url = node+"/nodes"
         r = requests.get(url)
         return json.loads(r.text)
+
     def clean_transactions(self):
         state = self.is_valid_chain()
         hashes = self.get_transaction_hashes()
         for t in self.current_transactions:
             if t['hash'] in hashes:
+                self.current_transactions.remove(t)
+            elif self.is_valid_transaction(state,t):
+                state = self.update_state(state,t)
+            else:
                 self.current_transactions.remove(t)
         save_transactions(self.current_transactions)
 
@@ -640,7 +662,12 @@ class Blockchain:
         return hashes
 
     def resolve_chain(self, node):
+
+        state = self.is_valid_chain()
         
+        if state is False:
+            print("INVALID CURRENT CHAIN!")
+
         try:
             node_last_block = self.retrive_last_block(node)
         except Exception as e:
@@ -658,18 +685,18 @@ class Blockchain:
         
         print("Last block comparison for chain equality test.")
         # Check if blocks are equal
-        if node_last_block['hash']!=last_block['hash']:
+        if node_last_block['hash']!=last_block['hash'] or state is False:
             print("Last block comparision differs!!!")
             # If are not equal, we need to check which chain is longer
-            if node_last_block['block_n']>last_block['block_n']:
-                print("Chain on {} is longer than ours, trying to fetch the full chain.".format(node))
+            if node_last_block['block_n']>last_block['block_n'] or state is False:
+                print("Chain on {} is longer than ours or we have incorrect one, trying to fetch the full chain.".format(node))
                 # If the node's chain is longer than ours
                 try:
                     node_chain = self.retrive_chain(node)
+                    print("Chain recived!")
                 except Exception as e:
                     print("Error getting {} chain: {}".format(node, str(e)))
                     return False
-                print("Chain recived!")
                 # If the node's chain is correct
                 if self.is_valid_chain(node_chain):
                     print("The chain is valid.")

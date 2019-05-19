@@ -49,10 +49,9 @@
                         let data = r;
                         let rhtml = "";
                         data.forEach((w)=>{
-                            let ws = JSON.stringify(w['wallet'])
                             rhtml += `<div id="${w['name']}" class="wallet" fname='${w['name']}'>Name:&nbsp;${w['name']}&nbsp;&nbsp;&nbsp;Wallet:&nbsp;${w['wallet']['address']}</div>`;
                         });
-                        $('#wallets').html(rhtml)
+                        $('#wallets').html(rhtml);
                         wallets = data;
                     },
                 });
@@ -72,6 +71,10 @@
                     success: function(r){
                         console.log(r);
                         $("#response").html(JSON.stringify(r));
+                    },
+                    error: function(request, status, error){
+                        console.log("Error:",error);
+                        $('#response').html(request.responseText);
                     },
                 });
                 console.log("Request done!");

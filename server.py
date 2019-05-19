@@ -55,8 +55,8 @@ def add_transaction():
     """
     Adds a new transaction to the current_transactions list if valid throught a POST request.
     """
-
     tr = json.loads(request.get_data().decode())
+    print("Adding transaction:",tr['hash'])
     state = blockchain.is_valid_chain()
     state = blockchain.update_state(state, blockchain.current_transactions)
     if blockchain.is_valid_transaction(state,tr):
@@ -183,6 +183,11 @@ def resolve_transactions():
     else:
         return "Invalid request", 401
 
+@app.route("/transactions/clean",methods=['GET'])
+def clean_transactions():
+    blockchain.clean_transactions()
+    return "Done",201
+
 @app.route("/nodes",methods=["GET"])
 def get_nodes():
     """
@@ -200,6 +205,7 @@ def resolve_node():
         return "Resolving started", 201
     else:
         return "Invalid request", 401
+
 
 @app.route("/nodes/add",methods=['POST'])
 def add_node():
