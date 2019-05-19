@@ -95,7 +95,7 @@ class Blockchain:
 
         :param block: <dict> Block to add.
         """
-        if self.is_valid_next_block(self.last_block, block):
+        if (len(self.chain)==0 and self.is_genesis_block(block)) or self.is_valid_next_block(self.last_block, block):
             self.chain.append(block)
             save_chain(self.chain)
             self.clean_transactions()
@@ -126,7 +126,9 @@ class Blockchain:
             return True
         else:
             return False
-
+    @staticmethod
+    def is_genesis_block(block):
+        return block['block_n']==0 and len(block['tokens'])==1 and block['previous_hash'] == "0" and block['pow'] == 9
     @staticmethod
     def spread_transaction(nodes, transaction):
         print("="*50)
@@ -136,8 +138,6 @@ class Blockchain:
             data = json.dumps(transaction, sort_keys=True)
             r = requests.post(node+"/transactions/add", data=data)
             print("status:",r.status_code)
-            p = Path("transaction_spread.log")
-            p.write_bytes(r.content)
         print("End transaction spread")
         print("="*50)
     
@@ -151,8 +151,6 @@ class Blockchain:
             headers = {"port":str(port)}
             r = requests.post(node+"/chain/add",headers=headers,data=data)
             print("status:",r.status_code)
-            p = Path("block_spread.log")
-            p.write_bytes(r.content)
         print("End block spread.")
         print("="*50)
 
