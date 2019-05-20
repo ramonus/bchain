@@ -76,23 +76,38 @@ class Client:
                 print("Error")
         except Exception as e:
             print("Error cleaning transactions:",str(e))
-
+    
+    def resolve_transactions_all(self):
+        print("Resolving transactions")
+        try:
+            url = self.url+"/transactions/resolve"
+            r = requests.get(url)
+            if r.status_code==201:
+                print("Resolve started!")
+            else:
+                print("Request error!")
+        except Exception as e:
+            print("Error:",str(e))
+    def resolve_nodes_all(self):
+        print("Resolving nodes")
+        try:
+            url = self.url+"/nodes/resolve"
+            r = requests.get(url)
+            if r.status_code==201:
+                print("Resolve started")
+            else:
+                print("Request error")
+        except Exception as e:
+            print("Error:",str(e))
 def main(args):
     client = Client(args.host, args.port)
     n = 0
     print("Client started!")
     while True:
         print("Starting iteration:",n)
-        # This method will check for the last block of every known node and if it differs, it will ask for whole chain and apply the consesus algorithm to update the chain when necessary
-        print("Requesting nodes...")
-        nodes = client.get_nodes()
-        if nodes:
-            print("Got:",nodes)
-            client.clean_transactions()
-            client.resolve_nodes(nodes)
-            client.resolve_transactions(nodes)
-        else:
-            print("Error getting nodes")
+        client.clean_transactions()
+        client.resolve_nodes_all()
+        client.resolve_transactions_all()
         print("Ended iteration:",n)
         time.sleep(10)
 

@@ -659,6 +659,10 @@ class Blockchain:
                 hashes.add(transaction['hash'])
         return hashes
 
+    def resolve_chains(self):
+        for node in self.nodes:
+            self.resolve_chain(node)
+
     def resolve_chain(self, node):
 
         state = self.is_valid_chain()
@@ -729,6 +733,10 @@ class Blockchain:
         r = requests.get(url)
         t = json.loads(r.text)
         return t
+    
+    def resolve_transactions_all(self):
+        for node in self.nodes:
+            resolve_transactions(node)
 
     def resolve_transactions(self, node):
         print("="*50)
