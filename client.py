@@ -99,6 +99,16 @@ class Client:
                 print("Request error")
         except Exception as e:
             print("Error:",str(e))
+    def is_working(self):
+        try:
+            r = requests.get(self.url+"/working")
+            j = r.json()
+            if r.status_code==200:
+                return not (j['chains'] or j['transactions'])
+            else:
+                raise Exception("Error, status code:",r.status_code)
+        except Exception as e:
+            print("Error:",str(e))
 def main(args):
     client = Client(args.host, args.port)
     n = 0
@@ -109,7 +119,13 @@ def main(args):
         client.resolve_nodes_all()
         client.resolve_transactions_all()
         print("Ended iteration:",n)
-        time.sleep(10)
+        time.sleep(5)
+        while True:
+            if client.is_working():
+                time.sleep(1)
+            else:
+                break
+            
 
         
 

@@ -19,6 +19,8 @@ class Blockchain:
         self.wallet = get_wallet()
         self.nodes = load_data("nodes.json")
         self.chain_transaction_hashes = set()
+        self.resolving_chains = False
+        self.resolving_transactions = False
         # Creates the genesis block
         if len(self.chain)==0:
             self.update_chain(self.create_genesis_block())
@@ -660,11 +662,12 @@ class Blockchain:
         return hashes
 
     def resolve_chains(self):
+        self.resolving_chains = True
         for node in self.nodes:
             self.resolve_chain(node)
+        self.resolving_chains = False
 
     def resolve_chain(self, node):
-
         state = self.is_valid_chain()
         
         if state is False:
@@ -735,8 +738,10 @@ class Blockchain:
         return t
     
     def resolve_transactions_all(self):
+        self.resolving_transactions = True
         for node in self.nodes:
             self.resolve_transactions(node)
+        self.resolving_transactions = False
 
     def resolve_transactions(self, node):
         print("="*50)

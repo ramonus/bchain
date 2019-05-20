@@ -262,6 +262,14 @@ def last_block():
 
     return jsonify(blockchain.last_block), 200
 
+@app.route("/working",methods=['GET'])
+def working():
+    resp = {
+        "chains": blockchain.resolving_chains,
+        "transactions": blockchain.resolving_transactions,
+    }
+    return jsonify(resp), 200
+
 @app.route("/state",methods=['GET'])
 def state():
     """
