@@ -11,8 +11,6 @@
                 var wallet_input = $('#s_wallet'), recipient_input = $('#recipient'), activeInput = wallet_input;
                 activeInput.focus();
 
-                get_wallets();
-                
                 $('input').on('focus',(e)=>{
                     activeInput = $(e.target);
                     console.log("This input:",this);
@@ -22,40 +20,50 @@
                 $("#wallets").on("click",".wallet",function(e){
                     console.log("Getting name");
                     let name = e.target.getAttribute("fname");
+                    name = parseInt(name);
                     console.log("Updating wallet:",name);
                     update_wallet(name);
                 });
                 
                 function update_wallet(name){
-                    wallets.forEach((w)=>{
-                        if(w['name']===name){
-                            if(activeInput.is(wallet_input)){
-                                let str = JSON.stringify(w["wallet"]);
-                                $('#s_wallet').val(str);
-                            }else
-                            if(activeInput.is(recipient_input)){
-                                $('#recipient').val(w['wallet']['address']);
-                            }
-                        }
-                    });
+                    let w = wallets[name];
+                    if(activeInput.is(wallet_input)){
+                        let str = JSON.stringify(w);
+                        $('#s_wallet').val(str);
+                    }else
+                    if(activeInput.is(recipient_input)){
+                        $('#recipient').val(w['address']);
+                    }
                 }
-            });
-            function get_wallets(){
-                $.ajax({
-                    type: "GET",
-                    url:"/get_wallets",
-                    success: function(r){
-                        console.log("Wallets:",r);
-                        let data = r;
-                        let rhtml = "";
-                        data.forEach((w)=>{
-                            rhtml += `<div id="${w['name']}" class="wallet" fname='${w['name']}'>Name:&nbsp;${w['name']}&nbsp;&nbsp;&nbsp;Wallet:&nbsp;${w['wallet']['address']}</div>`;
-                        });
-                        $('#wallets').html(rhtml);
-                        wallets = data;
-                    },
+                $('#download_new_wallet').on('click', (e)=>{
+                    $.ajax({
+                        type: 'GET',
+                        url: '/new_wallet',
+                        success: (r) => {
+                            console.log("Wallet recived!");
+                            $('#download_a').attr("href","data:application/octet-stream;charset=utf-8;base64,"+btoa(JSON.stringify(r['wallet'])));
+                            $("#download_a")[0].click();
+                        },
+                        error: (e)=>{
+                            console.log("Error:",e);
+                        },
+                    });
                 });
-            }
+                $('#upload_btn').on('click',()=>{
+                    let file = $('#wallet_file').prop('files')[0];
+                    let fr = new FileReader();
+                    fr.readAsDataURL(file);
+                    fr.onload = () => {
+                        let enc = fr.result.split(",")[1];
+                        let w = atob(enc);
+                        w = JSON.parse(w);
+                        let i = wallets.push(w)-1;
+                        let s = `<div class="wallet" fname='${i}'>Nº:&nbsp;${i}&nbsp;&nbsp;&nbsp;Wallet:&nbsp;${w['address']}</div>`;
+                        $('#wallets').html($('#wallets').html()+s);
+                    };
+                    console.log(file);
+                });
+            });
             function sendPost(wallet, recipient, amount){
                 console.log("Making request");
                 $("#response").html("Waiting for response...");
@@ -96,9 +104,14 @@
     </head>
     <body>
         <div id="wallets">
-            Waiting wallets...
         </div>
-        <a href="/new_wallet"><button>Create new wallet</button></a>
+        <a style="display:none;"download="wallet.dat"id="download_a">D</a>
+        <button id="download_new_wallet">Download new wallet</button>
+        <br>
+        Upload a wallet:
+        <br>
+        <input type="file" id="wallet_file">
+        <button id="upload_btn">Upload</button>
         <form>
             Wallet:
             <br>

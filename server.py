@@ -324,12 +324,10 @@ def get_wallets():
         wallets.append(w)
     return jsonify(wallets), 200
 
-@app.route("/new_wallet")
+@app.route("/new_wallet", methods=['GET'])
 def new_wallet():
     w = create_wallet()
-    n = save_wallet(w)
     resp = {
-        "name":n,
         "wallet": w,
     }
 
