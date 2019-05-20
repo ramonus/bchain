@@ -310,7 +310,7 @@ This section will be a test gui to simplify debugging
 
 @app.route("/")
 def root():
-    return render_template('index.html')
+    return render_template('index.html',wallet=blockchain.wallet)
 
 @app.route("/new_transaction")
 def ntransaction():
