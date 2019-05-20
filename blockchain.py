@@ -21,6 +21,7 @@ class Blockchain:
         self.chain_transaction_hashes = set()
         self.resolving_chains = False
         self.resolving_transactions = False
+        self.mining = False
         # Creates the genesis block
         if len(self.chain)==0:
             self.update_chain(self.create_genesis_block())
@@ -604,7 +605,7 @@ class Blockchain:
         
         :return: <dict> Block dict if it was successful, else False
         """
-
+        self.mining = True
         if not self.is_full():
             tr = copy.deepcopy(self.current_transactions)
             self.current_transactions = []
@@ -615,9 +616,11 @@ class Blockchain:
         if self.is_valid_next_block(self.last_block, nb):
             self.update_chain(nb)
             save_transactions(self.current_transactions)
+            self.mining = False
             return nb
         else:
             self.current_transactions = tr+self.current_transactions
+        self.mining = False
         return False
         
     @staticmethod

@@ -104,7 +104,7 @@ class Client:
             r = requests.get(self.url+"/working")
             j = r.json()
             if r.status_code==200:
-                return j['chains'] or j['transactions']
+                return j['chains'] or j['transactions'] or j['mining']
             else:
                 raise Exception("Error, status code:",r.status_code)
         except Exception as e:
@@ -125,7 +125,7 @@ def main(args):
         wts = time.time()
         time.sleep(5)
         while True:
-            if client.is_working():
+            if client.is_working() or (time.time()-st)<args.seconds:
                 time.sleep(1)
             else:
                 break
@@ -138,6 +138,7 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-H","--host",default="http://localhost",type=str,help="Host where the node runs on.")
     parser.add_argument("-p","--port",default=5000,type=int, help="Port where node listens")
+    parser.add_argument("-s","--seconds",default=10,type=int,help="Min seconds between loop")
     args = parser.parse_args()
 
     main(args)

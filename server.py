@@ -23,31 +23,34 @@ def mine():
     """
     GET request to try to mine a block.
     """
+    if not blockchain.mining:
+        # Call function to mine a block
+        mined_block = blockchain.mine()
 
-    # Call function to mine a block
-    mined_block = blockchain.mine()
-
-    # Check if it worked
-    if mined_block is not False:
-        # If it's not False
-        msg = "New block mined"
-        error = []
-        data = mined_block
-        s = 201
+        # Check if it worked
+        if mined_block is not False:
+            # If it's not False
+            msg = "New block mined"
+            error = []
+            data = mined_block
+            s = 201
+        else:
+            # If it's False
+            msg = "Error mining block"
+            error = ["Unknown error"]
+            data = None
+            s = 401
     else:
-        # If it's False
-        msg = "Error mining block"
-        error = ["Unknown error"]
+        msg = "Node is mining!"
+        error = ["Node already mining"]
         data = None
         s = 401
-
     # Create response
     response = {
         'message': msg,
         'error': error,
         'data': data,
     }
-    
     return jsonify(response), s
 
 @app.route("/transactions/add",methods=['POST'])
@@ -104,7 +107,7 @@ def new_transaction():
         else:
             msg = "Not enough funds, maybe some are reserved"
             error.append("Not enough funds")
-    except KeyError as e:
+    except KeyError:
         error.append("Invalid input")
 
     # Create response
@@ -267,6 +270,7 @@ def working():
     resp = {
         "chains": blockchain.resolving_chains,
         "transactions": blockchain.resolving_transactions,
+        "mining": blockchain.mining,
     }
     return jsonify(resp), 200
 
