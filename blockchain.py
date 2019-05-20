@@ -736,7 +736,7 @@ class Blockchain:
     
     def resolve_transactions_all(self):
         for node in self.nodes:
-            resolve_transactions(node)
+            self.resolve_transactions(node)
 
     def resolve_transactions(self, node):
         print("="*50)
