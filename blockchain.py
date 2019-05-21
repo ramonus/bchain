@@ -599,13 +599,21 @@ class Blockchain:
         """
         return len(self.current_transactions)>=self.BLOCK_SIZE
 
+    def _mcontroller(func):
+        def mine_controller(self):
+            self.mining = True
+            nb = func(self)
+            self.mining = False
+            return nb
+        return mine_controller
+
+    @_mcontroller
     def mine(self):
         """
         Tries to mine a new block.
         
         :return: <dict> Block dict if it was successful, else False
         """
-        self.mining = True
         if not self.is_full():
             tr = copy.deepcopy(self.current_transactions)
             self.current_transactions = []
@@ -616,11 +624,9 @@ class Blockchain:
         if self.is_valid_next_block(self.last_block, nb):
             self.update_chain(nb)
             save_transactions(self.current_transactions)
-            self.mining = False
             return nb
         else:
             self.current_transactions = tr+self.current_transactions
-        self.mining = False
         return False
         
     @staticmethod

@@ -104,12 +104,32 @@ class Client:
             r = requests.get(self.url+"/working")
             j = r.json()
             if r.status_code==200:
-                return j['chains'] or j['transactions'] or j['mining']
+                return j['chains'] or j['transactions']
             else:
                 raise Exception("Error, status code:",r.status_code)
         except Exception as e:
             print("Error:",str(e))
         return False
+    def is_mining(self):
+        r = requests.get(self.url+"/mining")
+        if r.status_code == 200:
+            return r.json()
+        else:
+            raise Exception("Request error")
+    def mine(self):
+        print("Makinng mine request")
+        try:
+            r = requests.get(self.url+"/mine")
+            if r.status_code==200:
+                if r.json():
+                    print("Mining process started!")
+                else:
+                    print("Mining not started")
+            else:
+                raise Exception("Error on mine request")
+        except Exception as e:
+            print("Error:",str(e))
+        
 def main(args):
     client = Client(args.host, args.port)
     n = 0
@@ -120,12 +140,19 @@ def main(args):
         client.clean_transactions()
         client.resolve_nodes_all()
         client.resolve_transactions_all()
+        try:
+            mining = client.is_mining()
+            if not mining:
+                client.mine()
+            else:
+                print("Client already mining")
+        except Exception as e:
+            print("Error:",str(e))
         print("Ended iteration:",n)
         print("-Time elapsed: {:.2f}s".format(time.time()-st))
         wts = time.time()
-        time.sleep(5)
         while True:
-            if client.is_working() or (time.time()-st)<args.seconds:
+            if client.is_working() and (time.time()-st)<args.seconds:
                 time.sleep(1)
             else:
                 break
