@@ -152,7 +152,7 @@ def main(args):
         print("-Time elapsed: {:.2f}s".format(time.time()-st))
         wts = time.time()
         while True:
-            if client.is_working() and (time.time()-st)<args.seconds:
+            if client.is_working() or (time.time()-st)<args.seconds:
                 time.sleep(1)
             else:
                 break
