@@ -7,6 +7,21 @@ from ecdsa.keys import BadSignatureError
 import threading, requests
 from urllib.parse import urlparse
 
+"""
+Decorators
+"""
+
+def _mcontroller(func):
+    def mine_controller(self):
+        print("STARTING MINE")
+        st = time.time()
+        self.mining = True
+        nb = func(self)
+        self.mining = False
+        print("ENDING MINE - {:.2f}s".format(time.time()-st))
+        return nb
+    return mine_controller
+
 class Blockchain:
     
     BLOCK_SIZE = 10
@@ -259,7 +274,7 @@ class Blockchain:
         """
         guess = f'{last_proof}{last_hash}{proof}'.encode()
         guess_hash = sha(guess).hex()
-        return guess_hash[:4] == "0"*6
+        return guess_hash[:7] == "0"*7
     
     @property
     def last_block(self):
@@ -600,14 +615,6 @@ class Blockchain:
         Checks if the current transaction list has more or equal items as BLOCK_SIZE
         """
         return len(self.current_transactions)>=self.BLOCK_SIZE
-
-    def _mcontroller(func):
-        def mine_controller(self):
-            self.mining = True
-            nb = func(self)
-            self.mining = False
-            return nb
-        return mine_controller
 
     @_mcontroller
     def mine(self):
