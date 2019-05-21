@@ -57,6 +57,7 @@ class Blockchain:
             timestamp = timestamp.isoformat()
 
         # Create the block dict
+        print("Calculing pow")
         block = {
             'block_n': n,
             'timestamp': timestamp,
@@ -66,6 +67,7 @@ class Blockchain:
             'previous_hash': previous_hash,
             'pow': 9 if previous_pow is None else self.next_pow(previous_pow, previous_hash),
         }
+        print("pow calculed")
 
         # Add the hash to the block
         block['hash'] = self.hash_block(block)
@@ -257,7 +259,7 @@ class Blockchain:
         """
         guess = f'{last_proof}{last_hash}{proof}'.encode()
         guess_hash = sha(guess).hex()
-        return guess_hash[:4] == "0"*4
+        return guess_hash[:4] == "0"*6
     
     @property
     def last_block(self):
