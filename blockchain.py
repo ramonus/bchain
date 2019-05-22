@@ -7,21 +7,22 @@ from ecdsa.keys import BadSignatureError
 import threading, requests
 from urllib.parse import urlparse
 
-"""
-Decorators
-"""
+
 
 def save_time(t):
     with open("mine_times.log","a") as f:
         f.write(str(t)+"\n")
 
+
+"""
+Decorators
+"""
+
 def _mcontroller(func):
     def mine_controller(self):
         print("STARTING MINE")
         st = time.time()
-        self.mining = True
         nb = func(self)
-        self.mining = False
         et = time.time()-st
         print("ENDING MINE - {:.2f}s".format(et))
         save_time(et)
@@ -42,7 +43,6 @@ class Blockchain:
         self.chain_transaction_hashes = set()
         self.resolving_chains = False
         self.resolving_transactions = False
-        self.mining = False
         # Creates the genesis block
         if len(self.chain)==0:
             self.update_chain(self.create_genesis_block())
@@ -211,7 +211,7 @@ class Blockchain:
         
         # Iterate to get the correct proof
         while not self.is_valid_proof(last_proof, last_hash, proof):
-            if proof%100000==0:
+            if proof%1000000==0:
                 print("PoW:",proof)
             proof += 1
         return proof
@@ -692,8 +692,14 @@ class Blockchain:
         self.resolving_chains = True
         for node in self.nodes:
             if self.resolve_chain(node):
-                print("Mining interrupted, someone mined a new block")
-                mining_thread.terminate()
+                if mining_thread is not None:
+                    print("Mining interrupted, someone mined a new block")
+                    mining_thread.join()
+                    if mining_thread.is_alive():
+                        print("Error stopping mining")
+                    else:
+                        print("Mining stopped!")
+
         self.resolving_chains = False
 
     def resolve_chain(self, node):

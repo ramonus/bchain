@@ -30,7 +30,7 @@ def mine():
     """
     global mining_thread
 
-    if not blockchain.mining:
+    if mining_thread is None or not mining_thread.is_alive():
         mining_thread = mp.Process(target=blockchain.mine)
         mining_thread.daemon = True
         mining_thread.start()
@@ -286,7 +286,7 @@ def working():
     resp = {
         "chains": blockchain.resolving_chains,
         "transactions": blockchain.resolving_transactions,
-        "mining": blockchain.mining,
+        "mining": mining_thread.is_alive() if mining_thread is not None else False,
     }
     return jsonify(resp), 200
 
@@ -321,7 +321,7 @@ def get_uid():
 
 @app.route("/mining",methods=['GET'])
 def mining():
-    return jsonify(blockchain.mining), 200
+    return jsonify(mining_thread.is_alive() if mining_thread is not None else False), 200
 
 """
 This section will be a test gui to simplify debugging
