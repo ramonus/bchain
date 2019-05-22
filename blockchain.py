@@ -43,6 +43,7 @@ class Blockchain:
         self.resolving_chains = False
         self.resolving_transactions = False
         self.mining = False
+        self.miningStop = False
         # Creates the genesis block
         if len(self.chain)==0:
             self.update_chain(self.create_genesis_block())
@@ -86,10 +87,17 @@ class Blockchain:
             'tokens': tokens,
             'miner': self.wallet['address'],
             'previous_hash': previous_hash,
-            'pow': 9 if previous_pow is None else self.next_pow(previous_pow, previous_hash),
         }
-        print("pow calculed")
 
+        pow = 9
+        if previous_pow is not None:
+            try:
+                pow = self.next_pow(previous_pow, previous_hash)
+                print("pow calculed")
+            except Exception as e:
+                print("Error:",str(e))
+                return None
+        block['pow'] = pow
         # Add the hash to the block
         block['hash'] = self.hash_block(block)
 
@@ -122,6 +130,7 @@ class Blockchain:
         :param block: <dict> Block to add.
         """
         if (len(self.chain)==0 and self.is_genesis_block(block)) or self.is_valid_next_block(self.last_block, block):
+            self.miningStop = True
             self.chain.append(block)
             save_chain(self.chain)
             self.clean_transactions()
@@ -211,6 +220,11 @@ class Blockchain:
         
         # Iterate to get the correct proof
         while not self.is_valid_proof(last_proof, last_hash, proof):
+            if proof%1000000==0:
+                print("PoW:",proof)
+            if self.miningStop:
+                self.miningStop = False
+                raise Exception("Mining interruption")
             proof += 1
         return proof
 
@@ -280,7 +294,8 @@ class Blockchain:
         """
         guess = f'{last_proof}{last_hash}{proof}'.encode()
         guess_hash = sha(guess).hex()
-        return guess_hash[:7] == "0"*7
+        n = 6
+        return guess_hash[:n] == "0"*n
     
     @property
     def last_block(self):
@@ -629,6 +644,7 @@ class Blockchain:
         
         :return: <dict> Block dict if it was successful, else False
         """
+        self.miningStop = False
         if not self.is_full():
             tr = copy.deepcopy(self.current_transactions)
             self.current_transactions = []
@@ -731,6 +747,7 @@ class Blockchain:
                     print("The chain is valid.")
                     # Then we update our chain
                     self.chain = node_chain
+                    self.miningStop = True
                     save_chain(self.chain)
                     self.clean_transactions()
                     return True
