@@ -211,6 +211,8 @@ class Blockchain:
         
         # Iterate to get the correct proof
         while not self.is_valid_proof(last_proof, last_hash, proof):
+            if proof%100000==0:
+                print("PoW:",proof)
             proof += 1
         return proof
 
@@ -280,7 +282,8 @@ class Blockchain:
         """
         guess = f'{last_proof}{last_hash}{proof}'.encode()
         guess_hash = sha(guess).hex()
-        return guess_hash[:7] == "0"*7
+        n = 6
+        return guess_hash[:n] == "0"*n
     
     @property
     def last_block(self):
@@ -685,10 +688,12 @@ class Blockchain:
                 hashes.add(transaction['hash'])
         return hashes
 
-    def resolve_chains(self):
+    def resolve_chains(self,mining_thread):
         self.resolving_chains = True
         for node in self.nodes:
-            self.resolve_chain(node)
+            if self.resolve_chain(node):
+                print("Mining interrupted, someone mined a new block")
+                mining_thread.terminate()
         self.resolving_chains = False
 
     def resolve_chain(self, node):

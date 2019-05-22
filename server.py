@@ -3,6 +3,7 @@ from flask import Flask, jsonify, request, render_template
 from blockchain import Blockchain
 from wallet_utils import create_wallet, save_wallet
 import threading
+import multiprocessing as mp
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-p","--port",default=5000, type=int, help="Port to run node on")
@@ -14,6 +15,10 @@ app = Flask(__name__)
 # Generate globally unique address for this node
 node_identifier = str(uuid.uuid4()).replace("-","")
 
+# Setup vars
+mining_thread = None
+resolve_nodes_thread = None
+
 # Instantiate Blockchain
 blockchain = Blockchain(port=args.port, uid=node_identifier)
 
@@ -23,8 +28,12 @@ def mine():
     """
     GET request to try to mine a block.
     """
+    global mining_thread
+
     if not blockchain.mining:
-        threading.Thread(target=blockchain.mine).start()
+        mining_thread = mp.Process(target=blockchain.mine)
+        mining_thread.daemon = True
+        mining_thread.start()
         return jsonify(True), 200
     else:
         return jsonify(False), 200
@@ -200,7 +209,10 @@ def get_nodes():
 
 @app.route("/nodes/resolve",methods=['GET'])
 def resolve_node():
-    threading.Thread(target=blockchain.resolve_chains).start()
+    global resolve_nodes_thread
+    resolve_nodes_thread = mp.Process(target=blockchain.resolve_chains, args=(mining_thread,))
+    resolve_nodes_thread.daemon = True
+    resolve_nodes_thread.start()
     return "resolve chains started", 201
 
 
