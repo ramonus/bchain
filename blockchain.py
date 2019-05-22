@@ -11,6 +11,10 @@ from urllib.parse import urlparse
 Decorators
 """
 
+def save_time(t):
+    with open("mine_times.log","a") as f:
+        f.write(str(t)+"\n")
+
 def _mcontroller(func):
     def mine_controller(self):
         print("STARTING MINE")
@@ -18,7 +22,9 @@ def _mcontroller(func):
         self.mining = True
         nb = func(self)
         self.mining = False
-        print("ENDING MINE - {:.2f}s".format(time.time()-st))
+        et = time.time()-st
+        print("ENDING MINE - {:.2f}s".format(et))
+        save_time(et)
         return nb
     return mine_controller
 
