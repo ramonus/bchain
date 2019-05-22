@@ -652,9 +652,9 @@ class Blockchain:
             tr = copy.deepcopy(self.current_transactions[:self.BLOCK_SIZE])
             self.current_transactions = self.current_transactions[self.BLOCK_SIZE:]
         nb = self.create_next_block(tr)
-        if self.is_valid_next_block(self.last_block, nb):
-            self.update_chain(nb)
-            save_transactions(self.current_transactions)
+        if nb is not None and self.is_valid_next_block(self.last_block, nb):
+            if self.update_chain(nb):
+                save_transactions(self.current_transactions)
             return nb
         else:
             self.current_transactions = tr+self.current_transactions
